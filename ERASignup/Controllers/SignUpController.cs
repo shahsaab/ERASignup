@@ -1,69 +1,62 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
-using System.IO;
-using System.Data;
-using System.Data.SqlClient;
 
 namespace ERASignup.Controllers
 {
     public class SignUpController : ApiController
     {
-        // GET api/<controller>
-        public IEnumerable<string> Get()
-        {
-            return new string[] { "value1", "value2" };
-        }
-
-        // GET api/<controller>/5
-
-        public string NewSite([FromBody] string Value)
+        [HttpPost]
+        [ActionName("NewSite")]
+        public string NewSite([FromBody] App_Code.wpUltimo_WebHook_Data data)
         {
             DAL db = new DAL();
-            string SubDomain = "check";
-            var data = Request.RequestUri.ParseQueryString();
-            if (data.HasKeys())
+            SqlParameter[] para =
             {
-                for (int i = 0; i < data.Keys.Count; i++)
-                { Value += string.Concat(", ", data.AllKeys[i], ": ", data.Keys[i]); }
+                new SqlParameter("@log", data.GetAllProps()),
+                new SqlParameter("@controllerName", "SignUp"),
+                new SqlParameter("@action", "NewSite")
+            };
+            db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para);
+
+            SqlParameter[] para2 =
+            {
+              new SqlParameter("@SubDomain", data.data.user_site_slug),
+              new SqlParameter("@SiteID", data.data.user_site_id),
+              new SqlParameter("@SiteName", data.data.user_site_name),
+              new SqlParameter("@SiteURL", data.data.user_site_url),
+              new SqlParameter("@UserID", data.data.user_id),
+              new SqlParameter("@UserFirstName", data.data.user_firstname),
+              new SqlParameter("@UserLastName", data.data.user_lastname),
+              new SqlParameter("@UserEmail", data.data.user_email),
+              new SqlParameter("@UserLogin", data.data.user_login),
+              new SqlParameter("@CreatedAt", data.data.created_at),
+              new SqlParameter("@PlanID", data.data.plan_id),
+              new SqlParameter("@PlanName", data.data.plan_name)
+            };
+
+            db.execQuery("Set_UserAccount", CommandType.StoredProcedure, para2);
+
+            if (db.ExceptionMsg == null)
+                return "Yeah!";
+            else
+            {
+                SqlParameter[] para3 =
+                {
+                    new SqlParameter("@log", db.ExceptionMsg),
+                    new SqlParameter("@controllerName", "SignUp"),
+                    new SqlParameter("@action", "NewSite")
+                };
+                db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para3);
+                return db.ExceptionMsg;
+
             }
-            db.execQuery("insert into apiLogs(apilog,controllername,action) values('" + Value + "','SignUp','NewSite');", CommandType.Text, null);
-            db.execQuery("insert into UserAccounts(SubDomain) values('" + SubDomain + "');", CommandType.Text, null);
 
-            return "Yeah!";
         }
-
-        public string Get(string id)
-        {
-            DAL db = new DAL();
-            string SubDomain = "check";
-            db.execQuery("insert into apiLogs(apilog,controllername,action) values('" + id + "','SignUp','Get');", CommandType.Text, null);
-            db.execQuery("insert into UserAccounts(SubDomain) values('" + SubDomain + "');", CommandType.Text, null);
-
-            return "Yeah!";
-        }
-
-        // POST api/<controller>
-        public void Post([FromBody] string value)
-        {
-            DAL db = new DAL();
-            string SubDomain = "check";
-            db.execQuery("insert into apiLogs(apilog,controllername,action) values('" + value + "','SignUp','Post');", CommandType.Text, null);
-            db.execQuery("insert into UserAccounts(SubDomain) values('" + SubDomain + "');", CommandType.Text, null);
-        }
-
-        // PUT api/<controller>/5
-        public void Put(int id, [FromBody] string value)
-        {
-        }
-
-        // DELETE api/<controller>/5
-        public void Delete(int id)
-        {
-        }
-
     }
 }

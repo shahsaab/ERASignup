@@ -16,8 +16,8 @@ namespace ERASignup
 
             config.Routes.MapHttpRoute(
                 name: "DefaultApi",
-                routeTemplate: "{controller}/{Action}",
-                defaults: new { user_site_slug = RouteParameter.Optional, id = RouteParameter.Optional }
+                routeTemplate: "api/{controller}/{action}"
+
             );
         }
     }
