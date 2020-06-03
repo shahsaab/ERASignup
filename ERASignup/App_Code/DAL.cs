@@ -14,10 +14,13 @@ public class DAL
     SqlDataAdapter ada;
     DataTable dt;
     public string ExceptionMsg = null;
-    public DAL()
+    public DAL(string conName = null)
     {
+        if (conName == null)
+            con = new SqlConnection(System.Web.Configuration.WebConfigurationManager.ConnectionStrings["CS"].ConnectionString);
+        else
+            con = new SqlConnection(System.Web.Configuration.WebConfigurationManager.ConnectionStrings["CS2"].ConnectionString);
 
-        con = new SqlConnection(System.Web.Configuration.WebConfigurationManager.ConnectionStrings["CS"].ConnectionString);
     }
 
     public DataTable execQuery(string Query, CommandType ct, SqlParameter[] param)
@@ -37,7 +40,7 @@ public class DAL
 
             return dt;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             ExceptionMsg = ex.Message;
             return null;

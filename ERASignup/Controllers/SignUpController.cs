@@ -1,10 +1,7 @@
-﻿using System;
+﻿using RestSharp;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Web.Http;
 
 namespace ERASignup.Controllers
@@ -41,9 +38,14 @@ namespace ERASignup.Controllers
             };
 
             db.execQuery("Set_UserAccount", CommandType.StoredProcedure, para2);
+            DAL db2 = new DAL("CS2");
+            db2.execQuery("CopyDB '" + data.data.user_site_slug + "'", CommandType.Text, null);
 
-            if (db.ExceptionMsg == null)
+            if (db.ExceptionMsg == null && db2.ExceptionMsg == null)
+            {
+                CallAPI(data.data.user_site_url, Method.POST, null, null);
                 return "Yeah!";
+            }
             else
             {
                 SqlParameter[] para3 =
@@ -56,7 +58,47 @@ namespace ERASignup.Controllers
                 return db.ExceptionMsg;
 
             }
+        }
 
+        [HttpPost]
+        [ActionName("NewAPIKey")]
+        public void NewAPIKey([FromBody] object data)
+        {
+            DAL db = new DAL("CS");
+            SqlParameter[] para3 =
+                {
+                    new SqlParameter("@log", data.ToString()),
+                    new SqlParameter("@controllerName", "SignUp"),
+                    new SqlParameter("@action", "NewAPIKey")
+                };
+            db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para3);
+        }
+
+        public string CallAPI(string apiPath, Method method, object bodyParameter = null, Dictionary<string, string> Parameters = null)
+        {
+            string endpoint = "/wc-auth/v1/authorize";
+            var client = new RestClient(string.Concat(apiPath, endpoint));
+
+            var request = new RestRequest(method);
+            request.AddQueryParameter("app_name", "EraConnect");
+            request.AddQueryParameter("user_id", "1");
+            request.AddQueryParameter("scope", "read_write");
+            request.AddQueryParameter("return_url", "#");
+            request.AddQueryParameter("callback_url", "https://eraconnect.net/signup/api/signup/NewAPIKey/");
+
+            //if (Parameters != null)
+            //    foreach (KeyValuePair<string, string> para in Parameters)
+            //        request.AddParameter(para.Key, para.Value);
+
+            //if (bodyParameter != null)
+            //    request.AddJsonBody(bodyParameter);
+
+            var response = client.Execute(request);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.OK || response.StatusCode == System.Net.HttpStatusCode.Created)
+                return response.Content;
+            else
+                return "Error: " + response.Content;
         }
     }
 }
