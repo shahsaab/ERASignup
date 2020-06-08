@@ -9,6 +9,9 @@ namespace ERASignup.Controllers
 {
     public class SignUpController : ApiController
     {
+        string Key = "ck_497bb11426365344b77ab62a070bdf75f75b55d5";// <-- Alkhait "ck_1a924ab52e7089bcd9021072796183455087f416";
+        string Secret = "cs_747cfb3d3c58a1b5619e1a4c6b2b259a852095bc"; // <-- AlKhait "cs_dbb4e06bf715bc0ead6e928ca5da4ecfd90f3682";
+
         [HttpPost]
         [ActionName("NewSite")]
         public string NewSite([FromBody] App_Code.wpUltimo_WebHook_Data data)
@@ -45,6 +48,7 @@ namespace ERASignup.Controllers
             if (db.ExceptionMsg == null && db2.ExceptionMsg == null)
             {
                 //CallAPI(data.data.user_site_url, Method.POST, null, null);
+                CreateWebHook(data.data.user_site_url);
                 return "Yeah!";
             }
             else
@@ -79,7 +83,15 @@ namespace ERASignup.Controllers
         [ActionName("CreateNewAPIKey")]
         public string CreateNewAPIKey(string WebSite)
         {
-            string response = CallAPI(WebSite, Method.POST, null, null);
+            Dictionary<string, string> parameters = new Dictionary<string, string>();
+            parameters.Add("app_name", "EraConnect");
+            parameters.Add("user_id", "1");
+            parameters.Add("scope", "read_write");
+            parameters.Add("return_url", "https://eralive.net");
+            parameters.Add("callback_url", "https://eraconnect.net/signup/api/signup/NewAPIKey/");
+
+            string response = CallAPI(string.Concat(WebSite, "/wc-auth/v1/authorize"), Method.POST, null, parameters);
+
             DAL db = new DAL("CS");
             SqlParameter[] para3 =
                 {
@@ -92,24 +104,32 @@ namespace ERASignup.Controllers
 
         }
 
+        public bool CreateWebHook(string WebSite)
+        {
+            string apiPath = string.Concat(WebSite, "/wp-json/wc/v3/webhooks");
+            Dictionary<string, string> Parameters = new Dictionary<string, string>();
+            Parameters.Add("consumer_key", Key);
+            Parameters.Add("consumer_secret", Secret);
+            Parameters.Add("name", "OrderToEra");
+            Parameters.Add("topic", "order.created");
+            Parameters.Add("delivery_url", "https://claires.eraconnect.net/ERAAPI/api/Woo/OrderCreated");
+
+            string response = CallAPI(apiPath, Method.POST, null, Parameters);
+
+            if (response.Contains("Error"))
+                return false;
+            else
+                return true;
+        }
+
         public string CallAPI(string apiPath, Method method, object bodyParameter = null, Dictionary<string, string> Parameters = null)
         {
-            string endpoint = "/wc-auth/v1/authorize";
-            var client = new RestClient(string.Concat(apiPath, endpoint));
+            var client = new RestClient(apiPath);
 
             var request = new RestRequest(method);
-            request.AddQueryParameter("app_name", "EraConnect");
-            request.AddQueryParameter("user_id", "1");
-            request.AddQueryParameter("scope", "read_write");
-            request.AddQueryParameter("return_url", "https://eralive.net");
-            request.AddQueryParameter("callback_url", "https://eraconnect.net/signup/api/signup/NewAPIKey/");
 
-            //if (Parameters != null)
-            //    foreach (KeyValuePair<string, string> para in Parameters)
-            //        request.AddParameter(para.Key, para.Value);
-
-            //if (bodyParameter != null)
-            //    request.AddJsonBody(bodyParameter);
+            request.AddQueryParameter("consumer_key", Key);
+            request.AddQueryParameter("consumer_secret", Secret);
 
             var response = client.Execute(request);
 
