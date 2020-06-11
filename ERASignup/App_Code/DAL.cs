@@ -19,7 +19,7 @@ public class DAL
         if (conName == null)
             con = new SqlConnection(System.Web.Configuration.WebConfigurationManager.ConnectionStrings["CS"].ConnectionString);
         else
-            con = new SqlConnection(System.Web.Configuration.WebConfigurationManager.ConnectionStrings["CS2"].ConnectionString);
+            con = new SqlConnection(System.Web.Configuration.WebConfigurationManager.ConnectionStrings[conName].ConnectionString);
 
     }
 

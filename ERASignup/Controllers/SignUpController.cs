@@ -85,12 +85,13 @@ namespace ERASignup.Controllers
         {
             Dictionary<string, string> parameters = new Dictionary<string, string>();
             parameters.Add("app_name", "EraConnect");
-            parameters.Add("user_id", "1");
+            parameters.Add("user_id", "995");
             parameters.Add("scope", "read_write");
             parameters.Add("return_url", "https://eralive.net");
             parameters.Add("callback_url", "https://eraconnect.net/signup/api/signup/NewAPIKey/");
 
-            string response = CallAPI(string.Concat(WebSite, "/wc-auth/v1/authorize"), Method.POST, null, parameters);
+            string apipath = string.Concat(WebSite, "/wc-auth/v1/authorize");
+            string response = CallAPI(apipath, Method.POST, false, null, parameters);
 
             DAL db = new DAL("CS");
             SqlParameter[] para3 =
@@ -114,7 +115,7 @@ namespace ERASignup.Controllers
             Parameters.Add("topic", "order.created");
             Parameters.Add("delivery_url", "https://claires.eraconnect.net/ERAAPI/api/Woo/OrderCreated");
 
-            string response = CallAPI(apiPath, Method.POST, null, Parameters);
+            string response = CallAPI(apiPath, Method.POST,true, null, Parameters);
 
             if (response.Contains("Error"))
                 return false;
@@ -122,14 +123,19 @@ namespace ERASignup.Controllers
                 return true;
         }
 
-        public string CallAPI(string apiPath, Method method, object bodyParameter = null, Dictionary<string, string> Parameters = null)
+        public string CallAPI(string apiPath, Method method, bool GotKey = true, object bodyParameter = null, Dictionary<string, string> Parameters = null)
         {
             var client = new RestClient(apiPath);
 
             var request = new RestRequest(method);
-
-            request.AddQueryParameter("consumer_key", Key);
-            request.AddQueryParameter("consumer_secret", Secret);
+            if (GotKey)
+            {
+                request.AddQueryParameter("consumer_key", Key);
+                request.AddQueryParameter("consumer_secret", Secret);
+            }
+            else if (Parameters != null)
+                foreach(KeyValuePair<string ,string> para in Parameters)
+                    request.AddQueryParameter(para.Key, para.Value);
 
             var response = client.Execute(request);
 
