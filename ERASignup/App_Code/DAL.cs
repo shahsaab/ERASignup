@@ -14,13 +14,10 @@ public class DAL
     SqlDataAdapter ada;
     DataTable dt;
     public string ExceptionMsg = null;
-    public DAL(string conName = null)
+    public DAL(string dbName)
     {
-        if (conName == null)
-            con = new SqlConnection(System.Web.Configuration.WebConfigurationManager.ConnectionStrings["CS"].ConnectionString);
-        else
-            con = new SqlConnection(System.Web.Configuration.WebConfigurationManager.ConnectionStrings[conName].ConnectionString);
-
+        string ConnectionStr = System.Web.Configuration.WebConfigurationManager.ConnectionStrings["CS"].ConnectionString.Replace("dbnameplaceholder", dbName);
+        con = new SqlConnection(ConnectionStr);
     }
 
     public DataTable execQuery(string Query, CommandType ct, SqlParameter[] param)

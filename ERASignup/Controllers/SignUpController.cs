@@ -16,7 +16,7 @@ namespace ERASignup.Controllers
         [ActionName("NewSite")]
         public string NewSite([FromBody] App_Code.wpUltimo_WebHook_Data data)
         {
-            DAL db = new DAL();
+            DAL db = new DAL("Accounts");
             SqlParameter[] para =
             {
                 new SqlParameter("@log", data.GetAllProps()),
@@ -42,13 +42,15 @@ namespace ERASignup.Controllers
             };
 
             db.execQuery("Set_UserAccount", CommandType.StoredProcedure, para2);
-            DAL db2 = new DAL("CS2");
+            DAL db2 = new DAL("Master");
             db2.execQuery("CopyDB '" + data.data.user_site_slug + "'", CommandType.Text, null);
 
             if (db.ExceptionMsg == null && db2.ExceptionMsg == null)
             {
                 //CallAPI(data.data.user_site_url, Method.POST, null, null);
-                CreateWebHook(data.data.user_site_url);
+                CreateWebHook(data.data.user_site_url, data.data.user_site_slug);
+                SetCredentials(data.data.user_site_slug, data.data.user_login);
+
                 return "Yeah!";
             }
             else
@@ -69,7 +71,7 @@ namespace ERASignup.Controllers
         [ActionName("NewAPIKey")]
         public void NewAPIKey([FromBody] App_Code.NewAPIKey_Data data)
         {
-            DAL db = new DAL("CS");
+            DAL db = new DAL("Accounts");
             SqlParameter[] para3 =
                 {
                     new SqlParameter("@log", JsonConvert.SerializeObject(data)),
@@ -93,7 +95,7 @@ namespace ERASignup.Controllers
             string apipath = string.Concat(WebSite, "/wc-auth/v1/authorize");
             string response = CallAPI(apipath, Method.POST, false, null, parameters);
 
-            DAL db = new DAL("CS");
+            DAL db = new DAL("Accounts");
             SqlParameter[] para3 =
                 {
                     new SqlParameter("@log", response),
@@ -105,7 +107,7 @@ namespace ERASignup.Controllers
 
         }
 
-        public bool CreateWebHook(string WebSite)
+        public bool CreateWebHook(string WebSite, string slug)
         {
             string apiPath = string.Concat(WebSite, "/wp-json/wc/v3/webhooks");
             Dictionary<string, string> Parameters = new Dictionary<string, string>();
@@ -113,7 +115,7 @@ namespace ERASignup.Controllers
             Parameters.Add("consumer_secret", Secret);
             Parameters.Add("name", "OrderToEra");
             Parameters.Add("topic", "order.created");
-            Parameters.Add("delivery_url", "https://claires.eraconnect.net/ERAAPI/api/Woo/OrderCreated");
+            Parameters.Add("delivery_url", "https://"+ slug +".eraconnect.net/ERAAPI/api/Woo/OrderCreated");
 
             string response = CallAPI(apiPath, Method.POST,true, null, Parameters);
 
@@ -143,6 +145,12 @@ namespace ERASignup.Controllers
                 return response.Content;
             else
                 return "Error: " + response.Content;
+        }
+
+        public void SetCredentials(string slug, string Username)
+        {
+            DAL db = new DAL(slug);
+            db.execQuery("update users set user_name='" + Username + "', Password='" + Username + "', isFirstLogin=1", CommandType.Text, null);
         }
     }
 }
