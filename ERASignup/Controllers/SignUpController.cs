@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using RestSharp;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -9,21 +10,14 @@ namespace ERASignup.Controllers
 {
     public class SignUpController : ApiController
     {
-        string Key = "ck_497bb11426365344b77ab62a070bdf75f75b55d5";// <-- Alkhait "ck_1a924ab52e7089bcd9021072796183455087f416";
-        string Secret = "cs_747cfb3d3c58a1b5619e1a4c6b2b259a852095bc"; // <-- AlKhait "cs_dbb4e06bf715bc0ead6e928ca5da4ecfd90f3682";
 
         [HttpPost]
         [ActionName("NewSite")]
         public string NewSite([FromBody] App_Code.wpUltimo_WebHook_Data data)
         {
+            SetLog("NewSite", data.GetAllProps());
+
             DAL db = new DAL("Accounts");
-            SqlParameter[] para =
-            {
-                new SqlParameter("@log", data.GetAllProps()),
-                new SqlParameter("@controllerName", "SignUp"),
-                new SqlParameter("@action", "NewSite")
-            };
-            db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para);
 
             SqlParameter[] para2 =
             {
@@ -48,66 +42,75 @@ namespace ERASignup.Controllers
             if (db.ExceptionMsg == null && db2.ExceptionMsg == null)
             {
                 //CallAPI(data.data.user_site_url, Method.POST, null, null);
-                CreateWebHook(data.data.user_site_url, data.data.user_site_slug);
                 SetCredentials(data.data.user_site_slug, data.data.user_login);
-
                 return "Yeah!";
             }
             else
             {
-                SqlParameter[] para3 =
-                {
-                    new SqlParameter("@log", db.ExceptionMsg),
-                    new SqlParameter("@controllerName", "SignUp"),
-                    new SqlParameter("@action", "NewSite")
-                };
-                db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para3);
+                SetLog("NewSite", db.ExceptionMsg);
                 return db.ExceptionMsg;
 
             }
         }
 
-        [HttpPost]
-        [ActionName("NewAPIKey")]
-        public void NewAPIKey([FromBody] App_Code.NewAPIKey_Data data)
+        public void SetLog(string Action, string LogMessage)
         {
             DAL db = new DAL("Accounts");
-            SqlParameter[] para3 =
+            SqlParameter[] para =
                 {
-                    new SqlParameter("@log", JsonConvert.SerializeObject(data)),
+                    new SqlParameter("@log", LogMessage),
                     new SqlParameter("@controllerName", "SignUp"),
-                    new SqlParameter("@action", "NewAPIKey")
+                    new SqlParameter("@action", Action)
                 };
-            db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para3);
+            db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para);
         }
 
-        [HttpGet]
-        [ActionName("CreateNewAPIKey")]
-        public string CreateNewAPIKey(string WebSite)
+        public string SetAPIKey(string SiteURL, string SubDomain, string Key, string Secret)
         {
-            Dictionary<string, string> parameters = new Dictionary<string, string>();
-            parameters.Add("app_name", "EraConnect");
-            parameters.Add("user_id", "995");
-            parameters.Add("scope", "read_write");
-            parameters.Add("return_url", "https://eralive.net");
-            parameters.Add("callback_url", "https://eraconnect.net/signup/api/signup/NewAPIKey/");
+            try
+            {
+                //request logged
+                SetLog("SetAPIKey", string.Concat("SubDomain: ", SubDomain, " - SiteURL: ", SiteURL, " - Key: ", Key, " - Secret: ", Secret));
 
-            string apipath = string.Concat(WebSite, "/wc-auth/v1/authorize");
-            string response = CallAPI(apipath, Method.POST, false, null, parameters);
-
-            DAL db = new DAL("Accounts");
-            SqlParameter[] para3 =
+                //adding new key & secret in Accounts DB
+                DAL db = new DAL("Accounts");
+                SqlParameter[] parameters =
                 {
-                    new SqlParameter("@log", response),
-                    new SqlParameter("@controllerName", "SignUp"),
-                    new SqlParameter("@action", "NewAPIKey")
+                    new SqlParameter("@SubDomain", SubDomain),
+                    new SqlParameter("@Key", Key),
+                    new SqlParameter("@Secret", Secret)
                 };
-            db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para3);
-            return response;
 
+                db.execQuery("Set_APIKey", CommandType.StoredProcedure, parameters);
+
+                //Creating New WebHook on subdomain.eralive.net
+                string WebHookResponse = CreateWebHook(SiteURL, SubDomain, Key, Secret);
+
+                string Response;
+
+                //If web hook creation fails
+                if (WebHookResponse.Contains("Error"))
+                    Response = WebHookResponse;
+                //If site does not exist
+                else if (WebHookResponse.Contains("<!DOCTYPE html>"))
+                    Response = "<h1>Error</h1><br/>Site does not exist, webhook creation failed!";
+                //If db insert fails
+                else if (db.ExceptionMsg != null)
+                    Response = string.Concat("Error! ", db.ExceptionMsg);
+
+                else
+                    Response = "<h1>Success!</h1><br/>New API Key saved. New WebHook created!";
+
+                return Response;
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
         }
 
-        public bool CreateWebHook(string WebSite, string slug)
+
+        public string CreateWebHook(string WebSite, string slug, string Key, string Secret)
         {
             string apiPath = string.Concat(WebSite, "/wp-json/wc/v3/webhooks");
             Dictionary<string, string> Parameters = new Dictionary<string, string>();
@@ -115,36 +118,9 @@ namespace ERASignup.Controllers
             Parameters.Add("consumer_secret", Secret);
             Parameters.Add("name", "OrderToEra");
             Parameters.Add("topic", "order.created");
-            Parameters.Add("delivery_url", "https://"+ slug +".eraconnect.net/ERAAPI/api/Woo/OrderCreated");
+            Parameters.Add("delivery_url", "https://" + slug + ".eraconnect.net/ERAAPI/api/Woo/OrderCreated");
 
-            string response = CallAPI(apiPath, Method.POST,true, null, Parameters);
-
-            if (response.Contains("Error"))
-                return false;
-            else
-                return true;
-        }
-
-        public string CallAPI(string apiPath, Method method, bool GotKey = true, object bodyParameter = null, Dictionary<string, string> Parameters = null)
-        {
-            var client = new RestClient(apiPath);
-
-            var request = new RestRequest(method);
-            if (GotKey)
-            {
-                request.AddQueryParameter("consumer_key", Key);
-                request.AddQueryParameter("consumer_secret", Secret);
-            }
-            else if (Parameters != null)
-                foreach(KeyValuePair<string ,string> para in Parameters)
-                    request.AddQueryParameter(para.Key, para.Value);
-
-            var response = client.Execute(request);
-
-            if (response.StatusCode == System.Net.HttpStatusCode.OK || response.StatusCode == System.Net.HttpStatusCode.Created)
-                return response.Content;
-            else
-                return "Error: " + response.Content;
+            return App_Code.Helper.CallAPI(apiPath, Method.POST, Parameters);
         }
 
         public void SetCredentials(string slug, string Username)
@@ -152,5 +128,47 @@ namespace ERASignup.Controllers
             DAL db = new DAL(slug);
             db.execQuery("update users set user_name='" + Username + "', Password='" + Username + "', isFirstLogin=1", CommandType.Text, null);
         }
+
+
+        //Code graveyard
+        //[HttpPost]
+        //[ActionName("NewAPIKey")]
+        //public void NewAPIKey([FromBody] App_Code.NewAPIKey_Data data)
+        //{
+        //    DAL db = new DAL("Accounts");
+        //    SqlParameter[] para3 =
+        //        {
+        //            new SqlParameter("@log", JsonConvert.SerializeObject(data)),
+        //            new SqlParameter("@controllerName", "SignUp"),
+        //            new SqlParameter("@action", "NewAPIKey")
+        //        };
+        //    db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para3);
+        //}
+
+        //[HttpGet]
+        //[ActionName("CreateNewAPIKey")]
+        //public string CreateNewAPIKey(string WebSite)
+        //{
+        //    Dictionary<string, string> parameters = new Dictionary<string, string>();
+        //    parameters.Add("app_name", "EraConnect");
+        //    parameters.Add("user_id", "995");
+        //    parameters.Add("scope", "read_write");
+        //    parameters.Add("return_url", "https://eralive.net");
+        //    parameters.Add("callback_url", "https://eraconnect.net/signup/api/signup/NewAPIKey/");
+
+        //    string apipath = string.Concat(WebSite, "/wc-auth/v1/authorize");
+        //    string response = CallAPI(apipath, Method.POST, false, null, parameters);
+
+        //    DAL db = new DAL("Accounts");
+        //    SqlParameter[] para3 =
+        //        {
+        //            new SqlParameter("@log", response),
+        //            new SqlParameter("@controllerName", "SignUp"),
+        //            new SqlParameter("@action", "NewAPIKey")
+        //        };
+        //    db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para3);
+        //    return response;
+
+        //}
     }
 }
