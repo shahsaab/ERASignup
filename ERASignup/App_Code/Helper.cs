@@ -1,6 +1,7 @@
 ﻿using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Web;
 
@@ -23,6 +24,19 @@ namespace ERASignup.App_Code
                 return response.Content;
             else
                 return "Error: " + response.Content;
+        }
+
+        public static string HtmlEncode(string text)
+        {
+            string result;
+            using (StringWriter sw = new StringWriter())
+            {
+                var x = new System.Web.UI.HtmlTextWriter(sw);
+                x.WriteEncodedText(text);
+                result = sw.ToString();
+            }
+            return result;
+
         }
 
 

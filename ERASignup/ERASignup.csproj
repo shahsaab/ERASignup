@@ -129,6 +129,8 @@
     <Compile Include="App_Code\Helper.cs" />
     <Compile Include="App_Code\NewAPIKey_Data.cs" />
     <Compile Include="App_Code\NewWebhook_Data.cs" />
+    <Compile Include="App_Code\WooSyncLogic.cs" />
+    <Compile Include="App_Code\WooWrapper.cs" />
     <Compile Include="App_Code\wpUltimo_WebHook_Data.cs" />
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\FilterConfig.cs" />
@@ -162,10 +164,16 @@
     <Compile Include="Areas\HelpPage\SampleGeneration\SampleDirection.cs" />
     <Compile Include="Areas\HelpPage\SampleGeneration\TextSample.cs" />
     <Compile Include="Areas\HelpPage\XmlDocumentationProvider.cs" />
+    <Compile Include="ClassTypes\Category.cs" />
+    <Compile Include="ClassTypes\Order.cs" />
+    <Compile Include="ClassTypes\Product.cs" />
+    <Compile Include="ClassTypes\Shipping.cs" />
+    <Compile Include="ClassTypes\ShippingMethod.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\SignUpController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="App_Code\DAL.cs" />
+    <Compile Include="Controllers\WooSyncController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
