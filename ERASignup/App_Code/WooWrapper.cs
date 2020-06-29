@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using RestSharp;
 using System.Collections.Generic;
 
@@ -225,17 +226,17 @@ namespace ERASignup.App_Code
 
         }
 
-        public ClassTypes.Shipping.ShippingZoneLocation UpdateShippingZoneLocation(ClassTypes.Shipping.ShippingZoneLocation newLocation, int ShippingZoneID)
+        public bool UpdateShippingZoneLocation(ClassTypes.Shipping.ShippingZoneLocation[] newLocation, int ShippingZoneID)
         {
             string bodyPara = JsonConvert.SerializeObject(newLocation, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
             string response = CallAPI(string.Concat("shipping/zones/", ShippingZoneID, "/locations"), Method.PUT, bodyPara);
 
             if (response.Contains("Error"))
-                return null;
-
-            var location = JsonConvert.DeserializeObject<ClassTypes.Shipping.ShippingZoneLocation>(response);
-            return location;
+                return false;
+            
+            //var location = JsonConvert.DeserializeObject<ClassTypes.Shipping.ShippingZoneLocation>(response);
+            return true;
         }
 
         public ClassTypes.ShippingMethod.ShippingMethod UpdateShippingZoneMethod(ClassTypes.ShippingMethod.ShippingMethod newMethod, int ShippingZoneID)

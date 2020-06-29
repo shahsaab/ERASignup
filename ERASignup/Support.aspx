@@ -67,7 +67,7 @@
                     <td></td>
                     <td>
                         <asp:Button ID="btnAdd" runat="server" OnClick="btnAdd_Click" Text="Submit" Width="49%" />
-                        <asp:Button ID="btnRefresh" runat="server" OnClick="btnRefresh_Click" Text="Refresh" Width="49%" /></td>
+                        <asp:Button ID="btnRefresh" runat="server" OnClick="btnRefresh_Click" Text="Refresh" Width="49%" UseSubmitBehavior="false" /></td>
                 </tr>
             </table>
             <div id="responseRow" runat="server" visible="false">

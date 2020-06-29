@@ -113,7 +113,7 @@ namespace ERASignup.App_Code
                                 ClassTypes.Products.Category[] c = new ClassTypes.Products.Category[1];
                                 c[0] = new ClassTypes.Products.Category()
                                 {
-                                    id = AllCategories.Where(ca => ca.name == row["Category"].ToString()).FirstOrDefault().id.Value
+                                    id = AllCategories.Where(ca => ca.name == Helper.HtmlEncode(row["Category"].ToString())).FirstOrDefault().id.Value
                                 };
 
                                 prod.name = row["Name"].ToString();
@@ -215,9 +215,10 @@ namespace ERASignup.App_Code
 
                         if (!string.IsNullOrEmpty(row["Zone"].ToString()))
                         {
-                            ClassTypes.Shipping.ShippingZoneLocation loc = new ClassTypes.Shipping.ShippingZoneLocation();
-                            loc.code = "PK:" + row["Zone"].ToString();
-                            loc.type = "state";
+                            ClassTypes.Shipping.ShippingZoneLocation[] loc = new ClassTypes.Shipping.ShippingZoneLocation[1];
+                            loc[0] = new ClassTypes.Shipping.ShippingZoneLocation();
+                            loc[0].code = "PK:" + row["Zone"].ToString();
+                            loc[0].type = "state";
                             woo.UpdateShippingZoneLocation(loc, zone.id);
                         }
 
@@ -227,7 +228,9 @@ namespace ERASignup.App_Code
                             continue;
 
                         Methods[0].enabled = row["Status"].ToString() == "1";
-                        Methods[0].settings.cost.value = row["Charges"].ToString();
+                        if (Methods[0].settings.cost != null)
+                            Methods[0].settings.cost.value = row["Charges"].ToString();
+
                         if (!string.IsNullOrEmpty(row["MinimumOrderAmount"].ToString()))
                             Methods[0].settings.min_amount.value = row["MinimumOrderAmount"].ToString();
 
