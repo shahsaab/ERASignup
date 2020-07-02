@@ -65,6 +65,23 @@ namespace ERASignup.Controllers
             db.execQuery("Set_ApiLog", CommandType.StoredProcedure, para);
         }
 
+        [HttpGet]
+        [ActionName("NewAPIKey")]
+        public bool NewAPIKey(string SubDomain, string Key, string Secret)
+        {
+            DAL db = new DAL("Accounts");
+            System.Data.DataTable dt = db.execQuery("select SiteURL from userAccounts where SubDomain='"+ SubDomain +"' and Status=1", System.Data.CommandType.Text, null);
+
+            if (dt == null || dt.Rows.Count == 0)
+                return false;
+
+            string Response = SetAPIKey(dt.Rows[0]["SiteURL"].ToString(), SubDomain, Key, Secret);
+
+            SetLog("New API Key", Response);
+
+            return Response.Contains("Success");
+        }
+
         public string SetAPIKey(string SiteURL, string SubDomain, string Key, string Secret)
         {
             try
