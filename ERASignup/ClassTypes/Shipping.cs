@@ -47,7 +47,7 @@ namespace ERASignup.ClassTypes.Shipping
 
     public class _Links2
     {
-        public Collection[] collection { get; set; }
+        public Collection2[] collection { get; set; }
         public Describe[] describes { get; set; }
     }
 

@@ -55,7 +55,6 @@ namespace ERASignup.Controllers
             DateTime.TryParse(subdomains.Rows[0]["LastSyncedAt"].ToString(), out LastSyncedAt);
             CleanBeforeSync = subdomains.Rows[0]["CleanBeforeSync"].ToString() == "1";
 
-
             WooSyncLogic logic = new WooSyncLogic();
 
             bool success = true;

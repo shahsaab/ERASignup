@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Serialization;
 using RestSharp;
 using System.Collections.Generic;
+using System.Web.Mvc;
 
 namespace ERASignup.App_Code
 {
@@ -226,24 +227,20 @@ namespace ERASignup.App_Code
 
         }
 
-        public bool UpdateShippingZoneLocation(ClassTypes.Shipping.ShippingZoneLocation[] newLocation, int ShippingZoneID)
+        public bool UpdateShippingZoneLocation(string newLocation, int ShippingZoneID)
         {
-            string bodyPara = JsonConvert.SerializeObject(newLocation, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
-
-            string response = CallAPI(string.Concat("shipping/zones/", ShippingZoneID, "/locations"), Method.PUT, bodyPara);
+            string response = CallAPI(string.Concat("shipping/zones/", ShippingZoneID, "/locations"), Method.PUT, newLocation);
 
             if (response.Contains("Error"))
                 return false;
-            
-            //var location = JsonConvert.DeserializeObject<ClassTypes.Shipping.ShippingZoneLocation>(response);
+
+            var location = JsonConvert.DeserializeObject<ClassTypes.Shipping.ShippingZoneLocation[]>(response);
             return true;
         }
 
-        public ClassTypes.ShippingMethod.ShippingMethod UpdateShippingZoneMethod(ClassTypes.ShippingMethod.ShippingMethod newMethod, int ShippingZoneID)
+        public ClassTypes.ShippingMethod.ShippingMethod UpdateShippingZoneMethod(string newMethod, int MethodID, int ShippingZoneID)
         {
-            string bodyPara = JsonConvert.SerializeObject(newMethod, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
-
-            string response = CallAPI(string.Concat("shipping/zones/", ShippingZoneID, "/methods/", newMethod.id), Method.PUT, bodyPara);
+            string response = CallAPI(string.Concat("shipping/zones/", ShippingZoneID, "/methods/", MethodID), Method.PUT, newMethod);
 
             if (response.Contains("Error"))
                 return null;

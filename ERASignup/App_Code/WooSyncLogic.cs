@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ERASignup.ClassTypes.ShippingMethod;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -215,26 +217,31 @@ namespace ERASignup.App_Code
 
                         if (!string.IsNullOrEmpty(row["Zone"].ToString()))
                         {
-                            ClassTypes.Shipping.ShippingZoneLocation[] loc = new ClassTypes.Shipping.ShippingZoneLocation[1];
-                            loc[0] = new ClassTypes.Shipping.ShippingZoneLocation();
-                            loc[0].code = "PK:" + row["Zone"].ToString();
-                            loc[0].type = "state";
-                            woo.UpdateShippingZoneLocation(loc, zone.id);
+                            string jsonStr = "[{\"code\": \"<<zone>>\",\"type\": \"state\"}]";
+
+                            jsonStr = jsonStr.Replace("<<zone>>", "PK:" + row["Zone"].ToString());
+
+                            woo.UpdateShippingZoneLocation(jsonStr, zone.id);
                         }
 
-                        ClassTypes.ShippingMethod.ShippingMethod[] Methods = woo.GetAllShippingZoneMethods(zone.id);
+                        ShippingMethod[] Methods = woo.GetAllShippingZoneMethods(zone.id);
 
                         if (Methods == null)
                             continue;
 
-                        Methods[0].enabled = row["Status"].ToString() == "1";
-                        if (Methods[0].settings.cost != null)
-                            Methods[0].settings.cost.value = row["Charges"].ToString();
+                        string jsonString = "{\"id\":\"<<id>>\", \"enabled\":<<enabled>>,\"settings\": {\"cost\": \"<<cost>>\", \"min_amount\":\"<<min_amount>>\"}}";
+                        string Charges = row["Charges"].ToString();
+                        string Min_Amount = row["MinimumOrderAmount"].ToString();
+                        bool Enabled = row["Status"].ToString() == "True";
 
-                        if (!string.IsNullOrEmpty(row["MinimumOrderAmount"].ToString()))
-                            Methods[0].settings.min_amount.value = row["MinimumOrderAmount"].ToString();
+                        jsonString = jsonString.Replace("<<id>>", Methods[0].id.ToString());
+                        jsonString = jsonString.Replace("<<enabled>>", Enabled.ToString().ToLower());
+                        jsonString = jsonString.Replace("<<cost>>", Charges);
+                        
+                        //If Minimum Amount is not null or empty        min_amount field will be removed from json String         else  Min_Amount value is set
+                        jsonString = string.IsNullOrEmpty(Min_Amount)? jsonString.Replace(", \"min_amount\":\"<<min_amount>>\"","") : jsonString.Replace("<<min_amount>>", Min_Amount);
 
-                        woo.UpdateShippingZoneMethod(Methods[0], zone.id);
+                        woo.UpdateShippingZoneMethod(jsonString, Methods[0].id, zone.id);
                     }
                 }
 

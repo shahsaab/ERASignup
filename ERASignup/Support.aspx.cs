@@ -67,5 +67,10 @@ namespace ERASignup
             txtResponse.Text = Response;
             txtResponse.ForeColor = Response.Contains("Error") ? System.Drawing.Color.DarkRed : System.Drawing.Color.DarkGreen;
         }
+
+        protected void btnSync_Click(object sender, ImageClickEventArgs e)
+        {
+
+        }
     }
 }
