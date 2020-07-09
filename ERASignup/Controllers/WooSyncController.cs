@@ -1,7 +1,6 @@
 ﻿using ERASignup.App_Code;
 using System;
 using System.Web.Http;
-using System.Web.UI.WebControls;
 
 namespace ERASignup.Controllers
 {
@@ -47,7 +46,7 @@ namespace ERASignup.Controllers
             System.Data.DataTable subdomains = db.execQuery("Get_AccountsForSync '" + SubDomain + "'", System.Data.CommandType.Text, null);
 
             if (subdomains == null || subdomains.Rows.Count == 0)
-                return "Error: Unable to sync... please setup ERA License Key.<br/>For help, contact <b>mailto:support@eralive.net</b>";
+                return "Error: Unable to sync... please setup ERA License Key. For help, contact support@eralive.net";
 
             SubDomain = subdomains.Rows[0]["SubDomain"].ToString();
             APIKey = subdomains.Rows[0]["API_Key"].ToString();
@@ -78,7 +77,7 @@ namespace ERASignup.Controllers
             else
                 logic.SetSyncLog(SubDomain, logic.error, success);
 
-            return success ? "Data has been synced sucessfully!" : "Error: Unable to sync. Please try again...<br/>For help, contact <b>mailto:support@eralive.net</b>";
+            return success ? "Data has been synced successfully!" : "Error: Unable to sync. Please try again... For help, contact support@eralive.net";
         }
     }
 }

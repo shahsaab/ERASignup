@@ -1,10 +1,7 @@
 ﻿using ERASignup.ClassTypes.ShippingMethod;
-using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Web;
 
 namespace ERASignup.App_Code
 {
@@ -16,7 +13,7 @@ namespace ERASignup.App_Code
             try
             {
                 DAL db = new DAL(DBName);
-                
+
                 DataTable dtProducts = db.execQuery("Get_ProductListForECommerce", System.Data.CommandType.Text, null);
                 DataTable dtCategories = db.execQuery("select distinct Category from Products", System.Data.CommandType.Text, null);
 
@@ -67,10 +64,12 @@ namespace ERASignup.App_Code
                         if (!exists)
                         {
                             ClassTypes.Products.Category[] c = new ClassTypes.Products.Category[1];
-                            c[0] = new ClassTypes.Products.Category()
-                            {
-                                id = AllCategories.Where(ca => ca.name == Helper.HtmlEncode(row["Category"].ToString())).FirstOrDefault().id.Value
-                            };
+                            c[0] = new ClassTypes.Products.Category();
+                            var MatchedCat = AllCategories.Where(ca => ca.name.ToLower() == Helper.HtmlEncode(row["Category"].ToString().ToLower())).FirstOrDefault();
+
+                            if (MatchedCat != null)
+                                c[0].id = MatchedCat.id.Value;
+
 
                             ClassTypes.Products.Image[] images = null;
                             //iterate trhough images and add in the above object
@@ -113,10 +112,29 @@ namespace ERASignup.App_Code
                             if (prod.date_modified_gmt.HasValue && ProductModifiedAt > prod.date_modified_gmt)
                             {
                                 ClassTypes.Products.Category[] c = new ClassTypes.Products.Category[1];
-                                c[0] = new ClassTypes.Products.Category()
+
+                                c[0] = new ClassTypes.Products.Category();
+                                var MatchedCat = AllCategories.Where(ca => ca.name.ToLower() == Helper.HtmlEncode(row["Category"].ToString().ToLower())).FirstOrDefault();
+
+                                if (MatchedCat != null)
+                                    c[0].id = MatchedCat.id.Value;
+
+                                ClassTypes.Products.Image[] images = null;
+                                //iterate trhough images and add in the above object
+                                if (row["Images"].ToString() != string.Empty)
                                 {
-                                    id = AllCategories.Where(ca => ca.name == Helper.HtmlEncode(row["Category"].ToString())).FirstOrDefault().id.Value
-                                };
+                                    string ImageStoreURL = System.Configuration.ConfigurationManager.AppSettings["ImageStore"];
+                                    string[] imgURLs = row["Images"].ToString().Substring(0, row["Images"].ToString().Length - 2).Split(',');
+
+                                    images = new ClassTypes.Products.Image[imgURLs.Length];
+
+                                    for (int i = 0; i < imgURLs.Length; i++)
+                                    {
+                                        images[i] = new ClassTypes.Products.Image();
+                                        images[i].src = string.Concat(ImageStoreURL, imgURLs[i].Trim());
+                                        images[i].alt = row["Name"].ToString();
+                                    }
+                                }
 
                                 prod.name = row["Name"].ToString();
                                 prod.short_description = row["Description"].ToString();
@@ -125,6 +143,7 @@ namespace ERASignup.App_Code
                                 prod.stock_status = "instock";
                                 prod.categories = c;
                                 prod.catalog_visibility = "visible";
+                                prod.images = images;
                             }
 
                             woo.UpdateProduct(prod);
@@ -237,9 +256,9 @@ namespace ERASignup.App_Code
                         jsonString = jsonString.Replace("<<id>>", Methods[0].id.ToString());
                         jsonString = jsonString.Replace("<<enabled>>", Enabled.ToString().ToLower());
                         jsonString = jsonString.Replace("<<cost>>", Charges);
-                        
+
                         //If Minimum Amount is not null or empty        min_amount field will be removed from json String         else  Min_Amount value is set
-                        jsonString = string.IsNullOrEmpty(Min_Amount)? jsonString.Replace(", \"min_amount\":\"<<min_amount>>\"","") : jsonString.Replace("<<min_amount>>", Min_Amount);
+                        jsonString = string.IsNullOrEmpty(Min_Amount) ? jsonString.Replace(", \"min_amount\":\"<<min_amount>>\"", "") : jsonString.Replace("<<min_amount>>", Min_Amount);
 
                         woo.UpdateShippingZoneMethod(jsonString, Methods[0].id, zone.id);
                     }
