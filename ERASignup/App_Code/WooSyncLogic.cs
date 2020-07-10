@@ -79,10 +79,12 @@ namespace ERASignup.App_Code
                         if (!exists)
                         {
                             ClassTypes.Products.Category[] c = new ClassTypes.Products.Category[1];
-                            c[0] = new ClassTypes.Products.Category()
-                            {
-                                id = AllCategories.Where(ca => ca.name == Helper.HtmlEncode(row["Category"].ToString())).FirstOrDefault().id.Value
-                            };
+                            c[0] = new ClassTypes.Products.Category();
+                            var MatchedCat = AllCategories.Where(ca => ca.name.ToLower() == Helper.HtmlEncode(row["Category"].ToString().ToLower())).FirstOrDefault();
+
+                            if (MatchedCat != null)
+                                c[0].id = MatchedCat.id.Value;
+
 
                             ClassTypes.Products.Image[] images = null;
                             //iterate trhough images and add in the above object
@@ -127,10 +129,29 @@ namespace ERASignup.App_Code
                             if (prod.date_modified_gmt.HasValue && ProductModifiedAt > prod.date_modified_gmt)
                             {
                                 ClassTypes.Products.Category[] c = new ClassTypes.Products.Category[1];
-                                c[0] = new ClassTypes.Products.Category()
+
+                                c[0] = new ClassTypes.Products.Category();
+                                var MatchedCat = AllCategories.Where(ca => ca.name.ToLower() == Helper.HtmlEncode(row["Category"].ToString().ToLower())).FirstOrDefault();
+
+                                if (MatchedCat != null)
+                                    c[0].id = MatchedCat.id.Value;
+
+                                ClassTypes.Products.Image[] images = null;
+                                //iterate trhough images and add in the above object
+                                if (row["Images"].ToString() != string.Empty)
                                 {
-                                    id = AllCategories.Where(ca => ca.name == Helper.HtmlEncode(row["Category"].ToString())).FirstOrDefault().id.Value
-                                };
+                                    string ImageStoreURL = System.Configuration.ConfigurationManager.AppSettings["ImageStore"];
+                                    string[] imgURLs = row["Images"].ToString().Substring(0, row["Images"].ToString().Length - 2).Split(',');
+
+                                    images = new ClassTypes.Products.Image[imgURLs.Length];
+
+                                    for (int i = 0; i < imgURLs.Length; i++)
+                                    {
+                                        images[i] = new ClassTypes.Products.Image();
+                                        images[i].src = string.Concat(ImageStoreURL, imgURLs[i].Trim());
+                                        images[i].alt = row["Name"].ToString();
+                                    }
+                                }
 
                                 prod.name = row["Name"].ToString();
                                 prod.short_description = row["Description"].ToString();
@@ -139,6 +160,7 @@ namespace ERASignup.App_Code
                                 prod.stock_status = "instock";
                                 prod.categories = c;
                                 prod.catalog_visibility = "visible";
+                                prod.images = images;
                             }
 
                             if (woo.UpdateProduct(prod) == null)
