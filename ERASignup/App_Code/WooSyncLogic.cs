@@ -1,10 +1,7 @@
 ﻿using ERASignup.ClassTypes.ShippingMethod;
-using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Web;
 
 namespace ERASignup.App_Code
 {
@@ -15,10 +12,16 @@ namespace ERASignup.App_Code
         {
             try
             {
+                SetSyncLog(DBName, "SyncProducts Process Started...", true);
+
                 DAL db = new DAL(DBName);
-                
+
                 DataTable dtProducts = db.execQuery("Get_ProductListForECommerce", System.Data.CommandType.Text, null);
                 DataTable dtCategories = db.execQuery("select distinct Category from Products", System.Data.CommandType.Text, null);
+
+                SetSyncLog(DBName, "Products Found (EraConnect): " + dtProducts.Rows.Count, true);
+                SetSyncLog(DBName, "Categories Found (EraConnect): " + dtCategories.Rows.Count, true);
+
 
                 if (dtProducts != null && dtProducts.Rows.Count > 0)
                 {
@@ -26,14 +29,21 @@ namespace ERASignup.App_Code
                     ClassTypes.Products.Product[] AllProducts = woo.GetAllProducts();
                     ClassTypes.Categories.Category[] AllCategories = woo.GetAllCategories();
 
+                    SetSyncLog(DBName, "Products Found (EraLive): " + AllProducts.Length, true);
+                    SetSyncLog(DBName, "Categories Found (EraLive): " + AllCategories.Length, true);
+
                     foreach (ClassTypes.Categories.Category cat in AllCategories)
                     {
                         if (cat.name == "Uncategorized")
                             continue;
 
                         bool exists = dtCategories.Select("Category = '" + cat.name + "'").Length > 0;
-                        if (!exists)
-                            woo.DeleteCategory(cat.id.Value);
+                        if (exists)
+                            continue;
+
+                        if (woo.DeleteCategory(cat.id.Value) == null)
+                            SetSyncLog(DBName, "Error while deleting Category (EraLive): " + cat.name + ". Error: " + woo.error, true);
+
                     }
 
                     foreach (DataRow row in dtCategories.Rows)
@@ -47,7 +57,8 @@ namespace ERASignup.App_Code
                                 name = CategoryName,
                                 display = "default"
                             };
-                            woo.AddCategory(newCategory);
+                            if (woo.AddCategory(newCategory) == null)
+                                SetSyncLog(DBName, "Error while adding Category (EraLive): " + newCategory.name + ". Error: " + woo.error, true);
                         }
                     }
 
@@ -57,7 +68,8 @@ namespace ERASignup.App_Code
                     {
                         bool exists = dtProducts.Select("Barcode = '" + prod.sku + "'").Length > 0;
                         if (!exists)
-                            woo.DeleteProduct(prod.id.Value);
+                            if (woo.DeleteProduct(prod.id.Value) == null)
+                                SetSyncLog(DBName, "Error while Deleting Product (EraLive): " + prod.name + ". Error: " + woo.error, true);
                     }
 
                     foreach (DataRow row in dtProducts.Rows)
@@ -104,7 +116,9 @@ namespace ERASignup.App_Code
                                 date_on_sale_to_gmt = row["PromotionEnd"].ToString(),
                                 images = images
                             };
-                            woo.AddProduct(newProd);
+                            if (woo.AddProduct(newProd) == null)
+                                SetSyncLog(DBName, "Error while adding Product (EraLive): " + newProd.name + ". Error: " + woo.error, true);
+
                         }
                         else
                         {
@@ -127,16 +141,22 @@ namespace ERASignup.App_Code
                                 prod.catalog_visibility = "visible";
                             }
 
-                            woo.UpdateProduct(prod);
+                            if (woo.UpdateProduct(prod) == null)
+                                SetSyncLog(DBName, "Error while updating Product (EraLive): " + prod.name + ". Error: " + woo.error, true);
                         }
                     }
 
                 }
-
+                SetSyncLog(DBName, "SyncProducts process completed!", true);
                 return true;
             }
             catch (Exception ex)
             {
+                string errorMessage = "Error: " + ex.Message;
+                if (ex.InnerException != null && ex.InnerException.Message != string.Empty)
+                    errorMessage += "| Inner Exception: " + ex.InnerException.Message;
+
+                SetSyncLog(DBName, "Error while Products & Categories Sync. " + errorMessage, true);
                 error = ex.Message;
                 return false;
             }
@@ -146,8 +166,12 @@ namespace ERASignup.App_Code
         {
             try
             {
+                SetSyncLog(DBName, "SyncOrders Process Started...", true);
+
                 DAL db = new DAL(DBName);
                 DataTable dtOrders = db.execQuery("select ID, Status from eOrder where ModifiedAt >= '" + LastSyncedAt + "' and Status in ('Delivered','Cancelled')", System.Data.CommandType.Text, null);
+
+                SetSyncLog(DBName, "Orders Found (EraConnect): " + dtOrders.Rows.Count, true);
 
                 if (dtOrders != null && dtOrders.Rows.Count > 0)
                 {
@@ -157,41 +181,66 @@ namespace ERASignup.App_Code
                         string DBStatus = row["Status"].ToString();
                         ClassTypes.Orders.Order ord = new ClassTypes.Orders.Order();
                         ord.status = DBStatus == "Delivered" ? "completed" : "cancelled";
-                        woo.UpdateOrder(ord);
+                        if(woo.UpdateOrder(ord) == null)
+                            SetSyncLog(DBName, "Error while updating order (EraLive): " + ord.id + ". Error: " + woo.error, true);
                     }
                 }
+                SetSyncLog(DBName, "SyncOrders Process Completed!", true);
                 return true;
             }
             catch (Exception ex)
             {
+                string errorMessage = "Error: " + ex.Message;
+                if (ex.InnerException != null && ex.InnerException.Message != string.Empty)
+                    errorMessage += "| Inner Exception: " + ex.InnerException.Message;
+
+                SetSyncLog(DBName, "Error while Order Sync. " + errorMessage, true);
+
                 error = ex.Message;
                 return false;
             }
         }
 
-        public bool DeleteAllProducts(string APIKey, string APISecret, string APIURL)
+        public bool DeleteAllProducts(string SubDomain, string APIKey, string APISecret, string APIURL)
         {
             try
             {
+                SetSyncLog(SubDomain, "Deleting Products & Categories (EraLive). Process Started...", true);
+
                 WooWrapper woo = new WooWrapper(APIKey, APISecret, APIURL);
                 ClassTypes.Products.Product[] AllProducts = woo.GetAllProducts();
                 ClassTypes.Categories.Category[] AllCategories = woo.GetAllCategories();
+
+                SetSyncLog(SubDomain, "Products Found (EraLive): " + AllProducts.Length, true);
+                SetSyncLog(SubDomain, "Categories Found (EraLive): " + AllCategories.Length, true);
 
                 foreach (ClassTypes.Categories.Category cat in AllCategories)
                 {
                     if (cat.name == "Uncategorized")
                         continue;
 
-                    woo.DeleteCategory(cat.id.Value);
+                    if (woo.DeleteCategory(cat.id.Value) == null)
+                        SetSyncLog(SubDomain, "Error while deleting category (EraLive): " + cat.name + ". Error: " + woo.error, true);
                 }
 
                 foreach (ClassTypes.Products.Product prod in AllProducts)
-                    woo.DeleteProduct(prod.id.Value);
+                {
+                    if (woo.DeleteProduct(prod.id.Value) == null)
+                        SetSyncLog(SubDomain, "Error while deleting product (EraLive): " + prod.name + ". Error: " + woo.error, true);
+                }
+
+                SetSyncLog(SubDomain, "Products & categories deleted (EraLive)...", true);
 
                 return true;
             }
             catch (Exception ex)
             {
+                string errorMessage = "Error: " + ex.Message;
+                if (ex.InnerException != null && ex.InnerException.Message != string.Empty)
+                    errorMessage += "| Inner Exception: " + ex.InnerException.Message;
+
+                SetSyncLog(SubDomain, "Error while deleting products & categories (EraLive). " + errorMessage, true);
+
                 error = ex.Message;
                 return false;
             }
@@ -201,8 +250,11 @@ namespace ERASignup.App_Code
         {
             try
             {
+                SetSyncLog(DBName, "SyncDeliver_Shipping Process Started...", true);
+
                 DAL db = new DAL(DBName);
                 DataTable dtShipping = db.execQuery("select * from eDelivery_Shipping where ModifiedAt >'" + LastSyncedAt + "'", System.Data.CommandType.Text, null);
+                SetSyncLog(DBName, "eDeliver_Shipping Found: " + dtShipping.Rows.Count, true);
 
                 if (dtShipping != null && dtShipping.Rows.Count > 0)
                 {
@@ -221,7 +273,8 @@ namespace ERASignup.App_Code
 
                             jsonStr = jsonStr.Replace("<<zone>>", "PK:" + row["Zone"].ToString());
 
-                            woo.UpdateShippingZoneLocation(jsonStr, zone.id);
+                            if(!woo.UpdateShippingZoneLocation(jsonStr, zone.id))
+                                SetSyncLog(DBName, "Error while Updating Shipping Zone's Location (EraLive): " + zone.id + ". Error: " + woo.error, true);
                         }
 
                         ShippingMethod[] Methods = woo.GetAllShippingZoneMethods(zone.id);
@@ -237,11 +290,12 @@ namespace ERASignup.App_Code
                         jsonString = jsonString.Replace("<<id>>", Methods[0].id.ToString());
                         jsonString = jsonString.Replace("<<enabled>>", Enabled.ToString().ToLower());
                         jsonString = jsonString.Replace("<<cost>>", Charges);
-                        
-                        //If Minimum Amount is not null or empty        min_amount field will be removed from json String         else  Min_Amount value is set
-                        jsonString = string.IsNullOrEmpty(Min_Amount)? jsonString.Replace(", \"min_amount\":\"<<min_amount>>\"","") : jsonString.Replace("<<min_amount>>", Min_Amount);
 
-                        woo.UpdateShippingZoneMethod(jsonString, Methods[0].id, zone.id);
+                        //If Minimum Amount is not null or empty        min_amount field will be removed from json String         else  Min_Amount value is set
+                        jsonString = string.IsNullOrEmpty(Min_Amount) ? jsonString.Replace(", \"min_amount\":\"<<min_amount>>\"", "") : jsonString.Replace("<<min_amount>>", Min_Amount);
+
+                        if(woo.UpdateShippingZoneMethod(jsonString, Methods[0].id, zone.id) == null)
+                            SetSyncLog(DBName, "Error while Updating Shipping Zone Method (EraLive): " + zone.id + ". Error: " + woo.error, true);
                     }
                 }
 
@@ -250,6 +304,12 @@ namespace ERASignup.App_Code
 
             catch (Exception ex)
             {
+                string errorMessage = "Error: " + ex.Message;
+                if (ex.InnerException != null && ex.InnerException.Message != string.Empty)
+                    errorMessage += "| Inner Exception: " + ex.InnerException.Message;
+
+                SetSyncLog(DBName, "Error while Delivery/Shipping Sync. " + errorMessage, true);
+
                 error = ex.Message;
                 return false;
             }

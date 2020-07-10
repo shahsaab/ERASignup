@@ -15,8 +15,10 @@ namespace ERASignup.Controllers
 
             bool success = true;
 
+            logic.SetSyncLog(SubDomain, "Sync Process Started by eSync Service!", success);
+
             if (CleanBeforeSync)
-                success = logic.DeleteAllProducts(APIKey, APISecret, APIURL);
+                success = logic.DeleteAllProducts(SubDomain, APIKey, APISecret, APIURL);
 
             if (success)
                 success = logic.SyncProducts(SubDomain, APIKey, APISecret, APIURL);
@@ -60,8 +62,10 @@ namespace ERASignup.Controllers
 
             bool success = true;
 
+            logic.SetSyncLog(SubDomain, "Sync Process Started by User (On-Demand)!", success);
+
             if (CleanBeforeSync)
-                success = logic.DeleteAllProducts(APIKey, APISecret, APIURL);
+                success = logic.DeleteAllProducts(SubDomain, APIKey, APISecret, APIURL);
 
             if (success)
                 success = logic.SyncProducts(SubDomain, APIKey, APISecret, APIURL);
@@ -78,7 +82,7 @@ namespace ERASignup.Controllers
             else
                 logic.SetSyncLog(SubDomain, logic.error, success);
 
-            return success ? "Data has been synced sucessfully!" : "Error: Unable to sync. Please try again...<br/>For help, contact <b>mailto:support@eralive.net</b>";
+            return success ? "Data has been synced successfully!" : "Error: Unable to sync. Please try again... For help, contact mailto:support@eralive.net";
         }
     }
 }

@@ -9,6 +9,7 @@ namespace ERASignup.App_Code
     public class WooWrapper
     {
         string Key, Secret, apiURL;
+        public string error { get; set; }
 
         public WooWrapper(string APIKey, string APISecret, string APIURL)
         {
@@ -40,7 +41,10 @@ namespace ERASignup.App_Code
             if (response.StatusCode == System.Net.HttpStatusCode.OK || response.StatusCode == System.Net.HttpStatusCode.Created)
                 return response.Content;
             else
+            {
+                error = response.Content;
                 return "Error: " + response.Content;
+            }
         }
 
         #region Products
