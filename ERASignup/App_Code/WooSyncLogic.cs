@@ -208,7 +208,7 @@ namespace ERASignup.App_Code
                 SetSyncLog(DBName, "SyncOrders Process Started...", true);
 
                 DAL db = new DAL(DBName);
-                DataTable dtOrders = db.execQuery("select ID, Status from eOrder where ModifiedAt >= '" + LastSyncedAt + "' and Status in ('Delivered','Cancelled')", System.Data.CommandType.Text, null);
+                DataTable dtOrders = db.execQuery("select ID, Status from eOrder where ModifiedAt >= '" + LastSyncedAt + "' and Status in ('Delivered','Cancelled','Returned')", System.Data.CommandType.Text, null);
 
                 SetSyncLog(DBName, "Orders Found (EraConnect): " + dtOrders.Rows.Count, true);
 
@@ -220,8 +220,7 @@ namespace ERASignup.App_Code
                         string DBStatus = row["Status"].ToString();
                         ClassTypes.Orders.Order ord = new ClassTypes.Orders.Order();
 
-
-
+                        ord.id = int.Parse(row["id"].ToString());
                         ord.status = MapOrderStatus(DBStatus);
                         if(woo.UpdateOrder(ord) == null)
                             SetSyncLog(DBName, "Error while updating order (EraLive): " + ord.id + ". Error: " + woo.error, true);
