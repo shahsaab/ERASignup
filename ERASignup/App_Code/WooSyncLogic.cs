@@ -116,7 +116,8 @@ namespace ERASignup.App_Code
                                 sale_price = row["SalePrice"].ToString(),
                                 date_on_sale_from_gmt = row["PromotionStart"].ToString(),
                                 date_on_sale_to_gmt = row["PromotionEnd"].ToString(),
-                                images = images
+                                images = images,
+                                featured = row["Featured"].ToString() == "True"
                             };
                             if (woo.AddProduct(newProd) == null)
                                 SetSyncLog(DBName, "Error while adding Product (EraLive): " + newProd.name + ". Error: " + woo.error, true);
@@ -161,6 +162,7 @@ namespace ERASignup.App_Code
                                 prod.categories = c;
                                 prod.catalog_visibility = "visible";
                                 prod.images = images;
+                                prod.featured = row["Featured"].ToString() == "True";
                             }
 
                             if (woo.UpdateProduct(prod) == null)
@@ -184,6 +186,21 @@ namespace ERASignup.App_Code
             }
         }
 
+        public string MapOrderStatus(string ERAConnect_Status)
+        {
+            switch (ERAConnect_Status)
+            {
+                case "Delivered":
+                    return "completed";
+                case "Cancelled":
+                    return "cancelled";
+                case "Returned":
+                    return "refunded";
+                default:
+                    return "processing";
+            }
+        }
+
         public bool SyncOrders(string DBName, string APIKey, string APISecret, string APIURL, DateTime LastSyncedAt)
         {
             try
@@ -202,7 +219,10 @@ namespace ERASignup.App_Code
                     {
                         string DBStatus = row["Status"].ToString();
                         ClassTypes.Orders.Order ord = new ClassTypes.Orders.Order();
-                        ord.status = DBStatus == "Delivered" ? "completed" : "cancelled";
+
+
+
+                        ord.status = MapOrderStatus(DBStatus);
                         if(woo.UpdateOrder(ord) == null)
                             SetSyncLog(DBName, "Error while updating order (EraLive): " + ord.id + ". Error: " + woo.error, true);
                     }

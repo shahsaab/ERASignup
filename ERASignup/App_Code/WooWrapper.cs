@@ -196,7 +196,7 @@ namespace ERASignup.App_Code
         {
             string bodyPara = JsonConvert.SerializeObject(newOrder, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
-            string response = CallAPI(string.Concat("Orders/", newOrder.id), Method.PUT, bodyPara);
+            string response = CallAPI(string.Concat("orders/", newOrder.id.Value), Method.PUT, bodyPara);
 
             if (response.Contains("Error"))
                 return null;
