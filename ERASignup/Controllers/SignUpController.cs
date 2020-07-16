@@ -53,6 +53,29 @@ namespace ERASignup.Controllers
             }
         }
 
+        [HttpPost]
+        [ActionName("DisableAccount")]
+        public string DisableAccount([FromBody] App_Code.wpUltimo_Data_SiteDeleted data)
+        {
+            SetLog("DisableAccount", data.GetAllProps());
+            DAL db = new DAL("Accounts");
+
+            SqlParameter[] para =
+            {
+              new SqlParameter("@UserID", data.data.user_id)
+            };
+
+            db.execQuery("Set_DisableAccount", CommandType.StoredProcedure, para);
+
+            if (db.ExceptionMsg == null)
+                return "Yeah!";
+            else
+            {
+                SetLog("SiteDeleted", db.ExceptionMsg);
+                return db.ExceptionMsg;
+            }
+        }
+
         public void SetLog(string Action, string LogMessage)
         {
             DAL db = new DAL("Accounts");

@@ -34,28 +34,7 @@ namespace ERASignup.App_Code
         public int webhook_id { get; set; }
         public string type { get; set; }
         public dataClass data { get; set; }
-        //        {
-        //  "webhook_id": 57,
-        //  "type": "account_created",
-        //  "data": {
-        //    "user_id": 1,
-        //    "user_site_id": 1,
-        //    "plan_id": 1,
-        //    "trial_days": 10,
-        //    "billing_frequency": 12,
-        //    "template_id": 1,
-        //    "price": 9.99,
-        //    "user_login": "johndoe",
-        //    "user_firstname": "John",
-        //    "user_lastname": "Doe",
-        //    "user_email": "johndoe@acme.com",
-        //    "user_site_url": "http://test.mynetwork.com/",
-        //    "plan_name": "Medium",
-        //    "created_at": "2018-06-30 10:23:25",
-        //    "user_site_name": "John's Blog",
-        //    "user_site_slug": "test"
-        //  }
-        //}
+
     }
     public class dataClass
     {
