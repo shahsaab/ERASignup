@@ -127,7 +127,8 @@ namespace ERASignup.App_Code
                         {
                             DateTime ProductModifiedAt = DateTime.Parse(row["ModifiedAt"].ToString());
                             ClassTypes.Products.Product prod = AllProducts.Where(x => x.sku == ProductBarcode).FirstOrDefault();
-                            if (prod.date_modified_gmt.HasValue && ProductModifiedAt > prod.date_modified_gmt)
+
+                            if ((prod.date_modified_gmt.HasValue && ProductModifiedAt > prod.date_modified_gmt) || (prod.on_sale.HasValue && prod.on_sale.Value && row["SalePrice"] == null))
                             {
                                 ClassTypes.Products.Category[] c = new ClassTypes.Products.Category[1];
 
@@ -163,6 +164,10 @@ namespace ERASignup.App_Code
                                 prod.catalog_visibility = "visible";
                                 prod.images = images;
                                 prod.featured = row["Featured"].ToString() == "True";
+                                prod.sale_price = row["SalePrice"].ToString();
+                                prod.date_on_sale_from_gmt = row["PromotionStart"].ToString();
+                                prod.date_on_sale_to_gmt = row["PromotionEnd"].ToString();
+
                             }
 
                             if (woo.UpdateProduct(prod) == null)
@@ -222,7 +227,7 @@ namespace ERASignup.App_Code
 
                         ord.id = int.Parse(row["id"].ToString());
                         ord.status = MapOrderStatus(DBStatus);
-                        if(woo.UpdateOrder(ord) == null)
+                        if (woo.UpdateOrder(ord) == null)
                             SetSyncLog(DBName, "Error while updating order (EraLive): " + ord.id + ". Error: " + woo.error, true);
                     }
                 }
@@ -314,7 +319,7 @@ namespace ERASignup.App_Code
 
                             jsonStr = jsonStr.Replace("<<zone>>", "PK:" + row["Zone"].ToString());
 
-                            if(!woo.UpdateShippingZoneLocation(jsonStr, zone.id))
+                            if (!woo.UpdateShippingZoneLocation(jsonStr, zone.id))
                                 SetSyncLog(DBName, "Error while Updating Shipping Zone's Location (EraLive): " + zone.id + ". Error: " + woo.error, true);
                         }
 
@@ -335,7 +340,7 @@ namespace ERASignup.App_Code
                         //If Minimum Amount is not null or empty        min_amount field will be removed from json String         else  Min_Amount value is set
                         jsonString = string.IsNullOrEmpty(Min_Amount) ? jsonString.Replace(", \"min_amount\":\"<<min_amount>>\"", "") : jsonString.Replace("<<min_amount>>", Min_Amount);
 
-                        if(woo.UpdateShippingZoneMethod(jsonString, Methods[0].id, zone.id) == null)
+                        if (woo.UpdateShippingZoneMethod(jsonString, Methods[0].id, zone.id) == null)
                             SetSyncLog(DBName, "Error while Updating Shipping Zone Method (EraLive): " + zone.id + ". Error: " + woo.error, true);
                     }
                 }
